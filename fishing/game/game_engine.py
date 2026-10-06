@@ -26,10 +26,11 @@ class GameEngine:
         self.hooked_fish = None
         self.score = 0
 
-    def update(self):
+    def start_cast(self):
         if self.hook.state == IDLE:
             self.hook.start_cast()
 
+    def update(self):
         self.hook.update()
 
         for fish in self.fish_list:
