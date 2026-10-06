@@ -8,7 +8,7 @@ Task 3), only one fish type exists (Task 2 adds more), and there's no
 round timer (Task 4). Catch detection also has a known bug (see
 game/catch.py) that Task 1 asks you to fix.
 """
-
+import pygame
 from game.hook import Hook, IDLE
 from game.fish import Fish
 from game.catch import check_catch
@@ -25,16 +25,36 @@ class GameEngine:
         ]
         self.hooked_fish = None
         self.score = 0
+        self.round_duration = 30_000
+        self.round_start_time = pygame.time.get_ticks()
+        self.round_active = True
 
     def start_cast(self):
-        if self.hook.state == IDLE:
+        if self.round_active and self.hook.state == IDLE:
             self.hook.start_cast()
 
+    def reset_round(self):
+        self.score = 0
+        self.round_start_time = pygame.time.get_ticks()
+        self.round_active = True
+        self.hooked_fish = None
+        self.hook.state = IDLE
+
     def update(self):
-        self.hook.update()
+        if self.round_active:
+            elapsed = pygame.time.get_ticks() - self.round_start_time
+            if elapsed >= self.round_duration:
+                self.round_active = False
+                self.hooked_fish = None
+            else:
+                self.hook.update()
+
+        if not self.round_active:
+            return
 
         for fish in self.fish_list:
             fish.update(WIDTH)
+    
 
         if self.hooked_fish is not None:
             self.hooked_fish.x = self.hook.x
@@ -57,4 +77,12 @@ class GameEngine:
         if self.hooked_fish is not None:
             draw_list.append(self.hooked_fish)
         renderer.draw_scene(surface, self.hook, draw_list)
-        renderer.draw_text(surface, font, f"Score: {self.score}", (10, 10))
+        if self.round_active:
+            elapsed = pygame.time.get_ticks() - self.round_start_time
+            remaining = max(0, (self.round_duration - elapsed + 999) // 1000)
+            renderer.draw_text(surface, font, f"Time: {remaining}", (10, 10))
+            renderer.draw_text(surface, font, f"Score: {self.score}", (10, 40))
+        else:
+            renderer.draw_text(surface, font, "TIME UP!", (10, 10))
+            renderer.draw_text(surface, font, f"Final Score: {self.score}", (10, 40))
+            renderer.draw_banner(surface, font, "ROUND OVER - Press R to play again")
